@@ -1,0 +1,92 @@
+name: Cache Workaround
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      
+      - name: Create Test File
+        run: echo "generated" > hello.txt
+      
+      # - name: Backup and Remove .gitignore
+      #   run: |
+      #     if [ -f ".gitignore" ]; then
+      #       mv .gitignore .gitignore.backup
+      #     fi
+      
+      - name: Cache Dependencies
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .
+            hello.txt
+          key: ${{ runner.os }}-project-${{ hashFiles('package-lock.json') }}
+      
+      # - name: Restore .gitignore
+      #   if: always()  # Run even if previous steps fail
+      #   run: |
+      #     if [ -f ".gitignore.backup" ]; then
+      #       mv .gitignore.backup .gitignore
+      #     fi
+      
+      - name: List Cache Contents
+        run: |
+          echo "--- Root Directory ---"
+          ls -la
+          echo "--- Content of hello.txt ---"
+          cat hello.txt
+
+  restore-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Backup and Remove .gitignore
+        run: |
+          if [ -f ".gitignore" ]; then
+            mv .gitignore .gitignore.backup
+          fi
+      
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .
+            hello.txt
+          key: ${{ runner.os }}-project-${{ hashFiles('package-lock.json') }}
+      
+      # - name: Restore .gitignore
+      #   if: always()
+      #   run: |
+      #     if [ -f ".gitignore.backup" ]; then
+      #       mv .gitignore.backup .gitignore
+      #     fi
+      
+      - name: List Restored Cache Contents
+        run: |
+          echo "--- Root Directory ---"
+          ls -la
+          echo "--- Content of hello.txt ---"
+          cat hello.txt
+
+  # fails
+  restore-cache-2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .
+          key: ${{ runner.os }}-project-${{ hashFiles('package-lock.json') }}
+      
+      - name: List Restored Cache Contents
+        run: |
+          echo "--- Root Directory ---"
+          ls -la
+          echo "--- Content of hello.txt ---"
+          cat hello.txt
